@@ -1,579 +1,411 @@
-/**
- * main.js
- * http://www.codrops.com
- *
- * Licensed under the MIT license.
- * http://www.opensource.org/licenses/mit-license.php
- * 
- * Copyright 2017, Codrops
- * http://www.codrops.com
- */
 ;(function(window) {
 
 	'use strict';
 
-	// From https://davidwalsh.name/javascript-debounce-function.
-	function debounce(func, wait, immediate) {
-		var timeout;
-		return function() {
-			var context = this, args = arguments;
-			var later = function() {
-				timeout = null;
-				if (!immediate) func.apply(context, args);
-			};
-			var callNow = immediate && !timeout;
-			clearTimeout(timeout);
-			timeout = setTimeout(later, wait);
-			if (callNow) func.apply(context, args);
-		};
+	var DOM = {
+		loader: document.querySelector('.overlay--loader'),
+		stage: document.querySelector('.container'),
+		scroller: document.querySelector('.container > .scroller'),
+		content: document.querySelector('.content')
 	};
 
-	// from http://www.quirksmode.org/js/events_properties.html#position
-	function getMousePos(e) {
-		var posx = 0;
-		var posy = 0;
-		if (!e) var e = window.event;
-		if (e.pageX || e.pageY) 	{
-			posx = e.pageX;
-			posy = e.pageY;
-		}
-		else if (e.clientX || e.clientY) 	{
-			posx = e.clientX + document.body.scrollLeft
-				+ document.documentElement.scrollLeft;
-			posy = e.clientY + document.body.scrollTop
-				+ document.documentElement.scrollTop;
-		}
-		return {
-			x : posx,
-			y : posy
-		}
-	}
-
-	var DOM = {};
-	// The loader.
-	DOM.loader = document.querySelector('.overlay--loader');
-	// The room wrapper. This will be the element to be transformed in order to move around.
-	DOM.scroller = document.querySelector('.container > .scroller');
-	// The rooms.
 	DOM.rooms = [].slice.call(DOM.scroller.querySelectorAll('.room'));
-	// The content wrapper.
-	DOM.content = document.querySelector('.content');
-	// Rooms navigation controls.
-	DOM.nav = {
-		leftCtrl : DOM.content.querySelector('nav > .btn--nav-left'),
-		rightCtrl : DOM.content.querySelector('nav > .btn--nav-right')
-	};
-	
-	// Content slides.
 	DOM.slides = [].slice.call(DOM.content.querySelectorAll('.slides > .slide'));
-	// The off canvas menu button.
+	DOM.nav = {
+		leftCtrl: DOM.content.querySelector('.btn--nav-left'),
+		rightCtrl: DOM.content.querySelector('.btn--nav-right')
+	};
 	DOM.menuCtrl = DOM.content.querySelector('.btn--menu');
-	// The menu overlay.
 	DOM.menuOverlay = DOM.content.querySelector('.overlay--menu');
-	// The menu items
-	DOM.menuItems = DOM.menuOverlay.querySelectorAll('.menu > .menu__item');
-	// The info button.
 	DOM.infoCtrl = DOM.content.querySelector('.btn--info');
-	// The info overlay.
 	DOM.infoOverlay = DOM.content.querySelector('.overlay--info');
-	// The info text.
-	DOM.infoText = DOM.infoOverlay.querySelector('.info');
+	DOM.brand = DOM.content.querySelector('.codrops-header__title');
+	DOM.subject = DOM.content.querySelector('.subject');
+	DOM.location = DOM.content.querySelector('.location');
+	DOM.auth = {
+		panel: DOM.content.querySelector('.auth-panel'),
+		loginCtrl: DOM.content.querySelector('[data-auth-action="login"]'),
+		logoutCtrl: DOM.content.querySelector('[data-auth-action="logout"]'),
+		user: DOM.content.querySelector('.auth-panel__user'),
+		photo: DOM.content.querySelector('.auth-panel__photo'),
+		name: DOM.content.querySelector('.auth-panel__name'),
+		message: DOM.content.querySelector('.auth-panel__message')
+	};
 
-	var	currentRoom = 0,
-		// Total number of rooms.
-		totalRooms = DOM.rooms.length,
-		// Initial transform.
-		initTransform = { translateX : 0, translateY : 0, translateZ : '500px', rotateX : 0, rotateY : 0, rotateZ : 0 },
-		// Reset transform.
-		resetTransform = { translateX : 0, translateY : 0, translateZ : 0, rotateX : 0, rotateY : 0, rotateZ : 0 },
-		// View from top.
-		menuTransform = { translateX : 0, translateY : '150%', translateZ : 0, rotateX : '15deg', rotateY : 0, rotateZ : 0 },
-		menuTransform = { translateX : 0, translateY : '50%', translateZ : 0, rotateX : '-10deg', rotateY : 0, rotateZ : 0 },
-		// Info view transform.
-		infoTransform = { translateX : 0, translateY : 0, translateZ : '200px', rotateX : '2deg', rotateY : 0, rotateZ : '4deg' },
-		// Room initial moving transition.
-		initTransition = { speed: '0.9s', easing: 'ease' },
-		// Room moving transition.
-		roomTransition = { speed: '0.4s', easing: 'ease' },
-		// View from top transition.
-		menuTransition = { speed: '1.85s', easing: 'cubic-bezier(0.2,1,0.3,1)' },
-		// Info transition.
-		infoTransition = { speed: '15s', easing: 'cubic-bezier(0.3,1,0.3,1)' },
-		// Tilt transition
-		tiltTransition = { speed: '0.2s', easing: 'ease-out' },
-		tilt = false,
-		// How much to rotate when the mouse moves.
-		tiltRotation = {
-			rotateX : 1, // a relative rotation of -1deg to 1deg on the x-axis
-			rotateY : -3  // a relative rotation of -3deg to 3deg on the y-axis
-		},
-		// Transition end event handler.
-		onEndTransition = function(el, callback) {
-			var onEndCallbackFn = function(ev) {
-				this.removeEventListener('transitionend', onEndCallbackFn);
-				if( callback && typeof callback === 'function' ) { callback.call(); }
-			};
-			el.addEventListener('transitionend', onEndCallbackFn);
-		},
-		// Window sizes.
-		win = {width: window.innerWidth, height: window.innerHeight},
-		// Check if moving inside the room and check if navigating.
-		isMoving, isNavigating;
+	var currentRoom = 0;
+	var totalRooms = DOM.rooms.length;
+	var isAnimating = false;
+	var touchStart = null;
+	var profile = getProfile();
+	var authInitialized = false;
+	var chapters = [
+		{title: 'Opening Roll', label: 'Photobook 01', note: 'A private reel by ' + profile.displayName},
+		{title: 'Quiet Frames', label: 'Photobook 02', note: 'Personal moments without a feed'},
+		{title: 'Archive Room', label: 'Photobook 03', note: 'Selected images, arranged like a screening'},
+		{title: 'Night Contact', label: 'Photobook 04', note: 'Photos for people who have the link'},
+		{title: 'After Credits', label: 'Photobook 05', note: 'A closing wall of saved scenes'}
+	];
 
-	function init() {
-		// Move into the current room.
-		move({transition: initTransition, transform: initTransform}).then(function() {
-			initTilt();
-		});
-		// Animate the current slide in.
-		showSlide(100);
-		// Init/Bind events.
-		initEvents();
-	}
+	function getProfile() {
+		var reservedPaths = ['', 'index.html', '404.html'];
+		var handle = window.location.pathname.split('/').filter(Boolean)[0] || 'velder';
 
-	function initTilt() {
-		applyRoomTransition(tiltTransition);
-		tilt = true;
-	}
+		if (reservedPaths.indexOf(handle) !== -1) {
+			handle = 'velder';
+		}
 
-	function removeTilt() {
-		tilt = false;
-	}
-	
-	function move(opts) {
-		return new Promise(function(resolve, reject) {
-			if( isMoving && !opts.stopTransition ) {
-				return false;
-			}
-			isMoving = true;
+		handle = decodeURIComponent(handle).replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 24) || 'velder';
 
-			if( opts.transition ) {
-				applyRoomTransition(opts.transition);
-			}
-
-			if( opts.transform ) {
-				applyRoomTransform(opts.transform);
-				var onEndFn = function() {
-					isMoving = false;
-					resolve();
-				};
-				onEndTransition(DOM.scroller, onEndFn);
-			}
-			else {
-				resolve();
-			}
-			
-		});
-	}
-
-	function initEvents() {
-		// Mousemove event / Tilt functionality.
-		var onMouseMoveFn = function(ev) {
-				requestAnimationFrame(function() {
-					if( !tilt ) return false;
-
-
-					var mousepos = getMousePos(ev),
-						// transform values
-						rotX = tiltRotation.rotateX ? initTransform.rotateX -  (2 * tiltRotation.rotateX / win.height * mousepos.y - tiltRotation.rotateX) : 0,
-						rotY = tiltRotation.rotateY ? initTransform.rotateY -  (2 * tiltRotation.rotateY / win.width * mousepos.x - tiltRotation.rotateY) : 0;
-			
-					// apply transform
-					applyRoomTransform({
-						'translateX' : initTransform.translateX, 
-						'translateY' : initTransform.translateY, 
-						'translateZ' : initTransform.translateZ, 
-						'rotateX' : rotX + 'deg', 
-						'rotateY' : rotY + 'deg',
-						'rotateZ' : initTransform.rotateZ
-					});
-				});
-			},
-			// Window resize.
-			debounceResizeFn = debounce(function() {
-				win = {width: window.innerWidth, height: window.innerHeight};
-			}, 10);
-		
-		document.addEventListener('mousemove', onMouseMoveFn);
-		window.addEventListener('resize', debounceResizeFn);
-
-		// Room navigation.
-		var onNavigatePrevFn = function() { navigate('prev'); },
-			onNavigateNextFn = function() { navigate('next'); };
-
-		DOM.nav.leftCtrl.addEventListener('click', onNavigatePrevFn);
-		DOM.nav.rightCtrl.addEventListener('click', onNavigateNextFn);
-
-		// Menu click.
-		DOM.menuCtrl.addEventListener('click', toggleMenu);
-
-		// Info click.
-		DOM.infoCtrl.addEventListener('click', toggleInfo);
-	}
-
-	function applyRoomTransform(transform) {
-		DOM.scroller.style.transform = 'translate3d(' + transform.translateX + ', ' + transform.translateY + ', ' + transform.translateZ + ') ' +
-									   'rotate3d(1,0,0,' + transform.rotateX + ') rotate3d(0,1,0,' + transform.rotateY + ') rotate3d(0,0,1,' + transform.rotateZ + ')';
-	}
-
-	function applyRoomTransition(transition) {
-		DOM.scroller.style.transition = transition === 'none' ? transition : 'transform ' + transition.speed + ' ' + transition.easing;
-	}
-
-	function toggleSlide(dir, delay) {
-		var slide = DOM.slides[currentRoom],
-			// Slide's name.
-			name = slide.querySelector('.slide__name'),
-			// Slide's title and date elements.
-			title = slide.querySelector('.slide__title'),
-			date = slide.querySelector('.slide__date');
-
-		delay = delay !== undefined ? delay : 0;
-
-		anime.remove([name, title, date]);
-		var animeOpts = {
-			targets: [name, title, date],
-			duration: dir === 'in' ? 400 : 400,
-			//delay: 0,//dir === 'in' ? 150 : 0,
-			delay: function(t, i, c) {
-				return delay + 75+i*75;
-			},
-			easing: [0.25,0.1,0.25,1],
-			opacity: {
-				value: dir === 'in' ? [0,1] : [1,0],
-				duration: dir === 'in' ? 550 : 250
-			},
-			translateY: function(t, i) {
-				return dir === 'in' ? [150,0] : [0,-150];
-			}	
+		return {
+			handle: handle,
+			displayName: '@' + handle,
+			shareUrl: window.location.origin + '/' + handle
 		};
-		if( dir === 'in' ) {
-			animeOpts.begin = function() {
-				slide.classList.add('slide--current');
-			};
+	}
+
+	function setAppHeight() {
+		document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+	}
+
+	function getEventPoint(ev) {
+		var touch = ev.changedTouches && ev.changedTouches.length ? ev.changedTouches[0] : ev;
+		return {
+			x: touch.clientX,
+			y: touch.clientY
+		};
+	}
+
+	function setCurrentRoom(index, direction) {
+		if (isAnimating || index === currentRoom) {
+			return;
+		}
+
+		isAnimating = true;
+		var previousRoom = DOM.rooms[currentRoom];
+		var previousSlide = DOM.slides[currentRoom];
+		var nextRoom = DOM.rooms[index];
+		var nextSlide = DOM.slides[index];
+		var roomImages = nextRoom.querySelectorAll('.room__img');
+
+		previousRoom.classList.remove('room--current');
+		previousSlide.classList.remove('slide--current');
+		nextRoom.classList.add('room--current');
+		nextSlide.classList.add('slide--current');
+		currentRoom = index;
+
+		if (window.anime) {
+			anime.remove([previousRoom, nextRoom, previousSlide, nextSlide, roomImages]);
+			anime({
+				targets: previousRoom,
+				opacity: [1, 0],
+				duration: 260,
+				easing: 'easeOutQuad'
+			});
+			anime({
+				targets: nextRoom,
+				opacity: [0, 1],
+				duration: 520,
+				easing: 'easeOutQuad'
+			});
+			anime({
+				targets: roomImages,
+				opacity: [0, 1],
+				translateY: [direction === 'next' ? 26 : -26, 0],
+				delay: function(item, itemIndex) {
+					return 70 * itemIndex;
+				},
+				duration: 620,
+				easing: [0.2, 1, 0.3, 1],
+				complete: function() {
+					isAnimating = false;
+				}
+			});
+			anime({
+				targets: nextSlide,
+				opacity: [0, 1],
+				translateY: [16, 0],
+				duration: 420,
+				easing: 'easeOutQuad'
+			});
 		}
 		else {
-			animeOpts.complete = function() {
-				slide.classList.remove('slide--current');
-			};
-		}
-		anime(animeOpts);
-	}
-
-	function showSlide(delay) {
-		toggleSlide('in', delay);
-	}
-
-	function hideSlide(delay) {
-		toggleSlide('out', delay);
-	}
-
-	function navigate(dir) {
-		if( isMoving || isNavigating ) {
-			return false;
-		}
-		isNavigating = true;
-		
-		var room = DOM.rooms[currentRoom];
-		
-		// Remove tilt.
-		removeTilt();
-		// Animate the current slide out - animate the name, title and date elements.
-		hideSlide();
-
-		// Update currentRoom.
-		if( dir === 'next' ) {
-			currentRoom = currentRoom < totalRooms - 1 ? currentRoom + 1 : 0;
-		}
-		else {
-			currentRoom = currentRoom > 0 ? currentRoom - 1 : totalRooms - 1;
-		}
-
-		// Position the next room.
-		var nextRoom = DOM.rooms[currentRoom];
-		nextRoom.style.transform = 'translate3d(' + (dir === 'next' ? 100 : -100) + '%,0,0) translate3d(' + (dir === 'next' ? 1 : -1) + 'px,0,0)' ;
-		nextRoom.style.opacity = 1;
-		
-		// Move back.
-		move({transition: roomTransition, transform: resetTransform})
-		.then(function() {
-			// Move left or right.
-			return move({transform: { translateX : (dir === 'next' ? -100 : 100) + '%', translateY : 0, translateZ : 0, rotateX : 0, rotateY : 0, rotateZ : 0 }});
-		})
-		.then(function() {
-			// Update current room class.
-			nextRoom.classList.add('room--current');
-			room.classList.remove('room--current');
-			room.style.opacity = 0;
-
-			// Show the next slide.
-			showSlide();
-
-			// Move into room.
-			// Update final transform state:
-			return move({transform: { translateX : (dir === 'next' ? -100 : 100) + '%', translateY : 0, translateZ : '500px', rotateX : 0, rotateY : 0, rotateZ : 0 }});
-		})
-		.then(function() {
-			// Reset positions.
-			applyRoomTransition('none');
-			nextRoom.style.transform = 'translate3d(0,0,0)';
-			applyRoomTransform(initTransform);
-			
-			setTimeout(function() {
-				initTilt();
-			}, 60);
-			isNavigating = false;
-		});
-	}
-
-	function toggleMenu() {
-		if( /*isMoving ||*/ isNavigating ) {
-			return false;
-		}
-		if( DOM.menuCtrl.classList.contains('btn--active') ) {
-			// Close it.
-			closeMenu();
-		}
-		else {
-			// Open it.
-			showMenu();
+			isAnimating = false;
 		}
 	}
 
-	function showMenu() {
-		// Button becomes cross.
-		DOM.menuCtrl.classList.add('btn--active');
-		// Remove tilt.
-		removeTilt();
-		// Add adjacent rooms.
-		//addAdjacentRooms();
-		// Hide current slide.
-		hideSlide();
-		// Apply menu transition.
-		applyRoomTransition(menuTransition);
-		// View from top:
-		move({transform: menuTransform, stopTransition: true});
-		// Show menu items
-		anime.remove(DOM.menuItems);
-		anime({
-			targets: DOM.menuItems,
-			duration: 500,
-			easing: [0.2,1,0.3,1],
-			delay: function(t,i) {
-				return 250+50*i;
-			},
-			translateY: [150, 0],
-			opacity: {
-				value: [0,1],
-				duration: 200,
-				easing: 'linear'
-			},
-			begin: function() {
-				DOM.menuOverlay.classList.add('overlay--active');
-			}
-		});
-		anime.remove(DOM.menuOverlay);
-		anime({
-			targets: DOM.menuOverlay,
-			duration: 1000,
-			easing: [0.25,0.1,0.25,1],
-			opacity: [0,1]
-		});
+	function navigate(direction) {
+		var nextIndex = direction === 'next'
+			? (currentRoom + 1) % totalRooms
+			: (currentRoom - 1 + totalRooms) % totalRooms;
+
+		setCurrentRoom(nextIndex, direction);
 	}
 
 	function closeMenu() {
-		// Button becomes menu.
 		DOM.menuCtrl.classList.remove('btn--active');
-		// Apply room transition.
-		applyRoomTransition(roomTransition);
-		// Show current slide.
-		showSlide(150);
-		// back to room view:
-		move({transform: initTransform, stopTransition: true}).then(function() {
-			// Remove adjacent rooms.
-			//removeAdjacentRooms();
-			// Init tilt.
-			initTilt();	
-		});
-		anime.remove(DOM.menuItems);
-		anime({
-			targets: DOM.menuItems,
-			duration: 250,
-			easing: [0.25,0.1,0.25,1],
-			delay: function(t,i,c) {
-				return 40*(c-i-1);
-			},
-			translateY: [0, 150],
-			opacity: {
-				value: [1,0],
-				duration: 250
-			},
-			complete: function() {
-				DOM.menuOverlay.classList.remove('overlay--active');
-			}
-		});
-		anime.remove(DOM.menuOverlay);
-		anime({
-			targets: DOM.menuOverlay,
-			duration: 400,
-			easing: [0.25,0.1,0.25,1],
-			opacity: [1,0]
-		});
+		DOM.menuOverlay.classList.remove('overlay--active');
 	}
 
-	function addAdjacentRooms() {
-		// Current room.
-		var room = DOM.rooms[currentRoom],
-			// Adjacent rooms.
-			nextRoom = DOM.rooms[currentRoom < totalRooms - 1 ? currentRoom + 1 : 0],
-			prevRoom = DOM.rooms[currentRoom > 0 ? currentRoom - 1 : totalRooms - 1];
-
-		// Position the adjacent rooms.
-		nextRoom.style.transform = 'translate3d(100%,0,0) translate3d(3px,0,0)';
-		nextRoom.style.opacity = 1;
-		prevRoom.style.transform = 'translate3d(-100%,0,0) translate3d(-3px,0,0)';
-		prevRoom.style.opacity = 1;
+	function toggleMenu() {
+		var isOpen = DOM.menuCtrl.classList.contains('btn--active');
+		closeInfo();
+		DOM.menuCtrl.classList.toggle('btn--active', !isOpen);
+		DOM.menuOverlay.classList.toggle('overlay--active', !isOpen);
 	}
 
-	function removeAdjacentRooms() {
-		// Current room.
-		var room = DOM.rooms[currentRoom],
-			// Adjacent rooms.
-			nextRoom = DOM.rooms[currentRoom < totalRooms - 1 ? currentRoom + 1 : 0],
-			prevRoom = DOM.rooms[currentRoom > 0 ? currentRoom - 1 : totalRooms - 1];
-
-		// Position the adjacent rooms.
-		nextRoom.style.transform = 'none';
-		nextRoom.style.opacity = 0;
-		prevRoom.style.transform = 'none';
-		prevRoom.style.opacity = 0;
-	}
-
-	function toggleInfo() {
-		if( isNavigating ) {
-			return false;
+	function ensureInfoContent() {
+		if (DOM.infoOverlay.querySelector('.info')) {
+			return;
 		}
-		if( DOM.infoCtrl.classList.contains('btn--active') ) {
-			// Close it.
-			closeInfo();
-		}
-		else {
-			// Open it.
-			showInfo();
-		}
-	}
 
-	function showInfo() {
-		// Button becomes cross.
-		DOM.infoCtrl.classList.add('btn--active');
-		// Remove tilt.
-		removeTilt();
-		// Hide current slide.
-		hideSlide();
-		// Apply info transition.
-		applyRoomTransition(infoTransition);
-		// Infoview:
-		move({transform: infoTransform, stopTransition: true});
-		// Show info text and animate photos out of the walls.
-		var photos = DOM.rooms[currentRoom].querySelectorAll('.room__img');
-		anime.remove(photos);
-		anime({
-			targets: photos,
-			duration: function() {
-				return anime.random(15000, 30000);
-			},
-			easing: [0.3,1,0.3,1],
-			translateY: function() {
-				return anime.random(-50,50);
-			},
-			rotateX: function() {
-				return anime.random(-2,2);
-			},
-			rotateZ: function() {
-				return anime.random(-5,5);
-			},
-			translateZ: function() {
-				return [10,anime.random(50,win.width/3)];
-			}
-		});
-		// Animate info text and overlay.
-		anime.remove([DOM.infoOverlay, DOM.infoText]);
-		var animeInfoOpts = {
-			targets: [DOM.infoOverlay, DOM.infoText],
-			duration: 1500,
-			delay: function(t,i) {
-				return !i ? 0 : 150;
-			},
-			easing: [0.25,0.1,0.25,1],
-			opacity: [0,1],
-			translateY: function(t,i) {
-				return !i ? 0 : [30,0];
-			},
-			begin: function() {
-				DOM.infoOverlay.classList.add('overlay--active');
-			}
-		};
-		anime(animeInfoOpts);
+		DOM.infoOverlay.innerHTML = [
+			'<div class="info">',
+			'<h2>' + profile.displayName + '</h2>',
+			'<p>A quiet web photobook for photos that do not need to interrupt everyone else.</p>',
+			'<p class="info__link">' + profile.shareUrl + '</p>',
+			'</div>'
+		].join('');
 	}
 
 	function closeInfo() {
-		// Button becomes info.
 		DOM.infoCtrl.classList.remove('btn--active');
-		// Apply room transition.
-		applyRoomTransition(roomTransition);
-		// Show current slide.
-		showSlide(100);
-		// back to room view:
-		move({transform: initTransform, stopTransition: true}).then(function() {	
-			initTilt();
-		});
-
-		// Hide info text and animate photos into the walls.
-		var photos = DOM.rooms[currentRoom].querySelectorAll('.room__img');
-		anime.remove(photos);
-		anime({
-			targets: photos,
-			duration: 400,
-			easing: [0.3,1,0.3,1],
-			translateY: 0,
-			rotateX: 0,
-			rotateZ: 0,
-			translateZ: 10
-		});
-		// Animate info text and overlay.
-		anime.remove([DOM.infoOverlay, DOM.infoText]);
-		var animeInfoOpts = {
-			targets: [DOM.infoOverlay, DOM.infoText],
-			duration: 400,
-			easing: [0.25,0.1,0.25,1],
-			opacity: [1,0],
-			translateY: function(t,i) {
-				return !i ? 0 : [0,30];
-			},
-			complete: function() {
-				DOM.infoOverlay.classList.remove('overlay--active');
-			}
-		};
-		anime(animeInfoOpts);
+		DOM.infoOverlay.classList.remove('overlay--active');
 	}
 
-	// Preload all the images.
-	imagesLoaded(DOM.scroller, function() {
-		var extradelay = 1000;
-		// Slide out loader.
-		anime({
-			targets: DOM.loader,
-			duration: 600,
-			easing: 'easeInOutCubic',
-			delay: extradelay,
-			translateY: '-100%',
-			begin: function() {
-				init();
-			},
-			complete: function() {
-				DOM.loader.classList.remove('overlay--active');
+	function setAuthMessage(message) {
+		if (DOM.auth.message) {
+			DOM.auth.message.textContent = message || '';
+		}
+	}
+
+	function setAuthLoading(isLoading) {
+		if (DOM.auth.loginCtrl) {
+			DOM.auth.loginCtrl.disabled = isLoading;
+		}
+		if (DOM.auth.logoutCtrl) {
+			DOM.auth.logoutCtrl.disabled = isLoading;
+		}
+	}
+
+	function getAuthErrorMessage(error) {
+		var code = error && error.code;
+
+		if (code === 'auth/popup-closed-by-user') {
+			return '로그인이 취소되었습니다.';
+		}
+		if (code === 'auth/popup-blocked') {
+			return '팝업이 차단되어 다시 연결합니다.';
+		}
+		if (code === 'auth/unauthorized-domain') {
+			return 'Firebase Authentication 승인 도메인을 확인해 주세요.';
+		}
+		if (code === 'auth/operation-not-allowed') {
+			return 'Firebase Console에서 Google 로그인 제공업체를 활성화해 주세요.';
+		}
+
+		return '로그인 처리 중 문제가 발생했습니다.';
+	}
+
+	function renderAuthState(user) {
+		var isSignedIn = !!user;
+
+		if (!DOM.auth.panel) {
+			return;
+		}
+
+		DOM.auth.panel.classList.toggle('auth-panel--signed-in', isSignedIn);
+		if (DOM.auth.loginCtrl) {
+			DOM.auth.loginCtrl.hidden = isSignedIn;
+		}
+		if (DOM.auth.user) {
+			DOM.auth.user.hidden = !isSignedIn;
+		}
+		if (DOM.auth.name) {
+			DOM.auth.name.textContent = isSignedIn ? (user.displayName || user.email || 'Google user') : '';
+		}
+		if (DOM.auth.photo) {
+			DOM.auth.photo.hidden = !isSignedIn || !user.photoURL;
+			DOM.auth.photo.src = isSignedIn && user.photoURL ? user.photoURL : '';
+		}
+
+		setAuthMessage(isSignedIn ? '로그인됨' : '');
+	}
+
+	function signInWithGoogle() {
+		if (!window.firebase || !firebase.auth) {
+			setAuthMessage('Firebase Auth를 불러오지 못했습니다.');
+			return;
+		}
+
+		var provider = new firebase.auth.GoogleAuthProvider();
+		provider.setCustomParameters({
+			prompt: 'select_account'
+		});
+
+		setAuthLoading(true);
+		setAuthMessage('Google 계정으로 연결 중...');
+		firebase.auth().signInWithPopup(provider)
+			.catch(function(error) {
+				if (error && error.code === 'auth/popup-blocked') {
+					setAuthMessage(getAuthErrorMessage(error));
+					return firebase.auth().signInWithRedirect(provider);
+				}
+
+				setAuthMessage(getAuthErrorMessage(error));
+				console.error(error);
+			})
+			.finally(function() {
+				setAuthLoading(false);
+			});
+	}
+
+	function signOutFromGoogle() {
+		if (!window.firebase || !firebase.auth) {
+			return;
+		}
+
+		setAuthLoading(true);
+		firebase.auth().signOut()
+			.catch(function(error) {
+				setAuthMessage('로그아웃 처리 중 문제가 발생했습니다.');
+				console.error(error);
+			})
+			.finally(function() {
+				setAuthLoading(false);
+			});
+	}
+
+	function initAuth() {
+		if (authInitialized || !DOM.auth.panel || !window.firebase || !firebase.auth) {
+			return;
+		}
+
+		authInitialized = true;
+		firebase.auth().getRedirectResult().catch(function(error) {
+			setAuthMessage(getAuthErrorMessage(error));
+			console.error(error);
+		});
+		firebase.auth().onAuthStateChanged(renderAuthState, function(error) {
+			setAuthMessage(getAuthErrorMessage(error));
+			console.error(error);
+		});
+
+		if (DOM.auth.loginCtrl) {
+			DOM.auth.loginCtrl.addEventListener('click', signInWithGoogle);
+		}
+		if (DOM.auth.logoutCtrl) {
+			DOM.auth.logoutCtrl.addEventListener('click', signOutFromGoogle);
+		}
+	}
+
+	function toggleInfo() {
+		var isOpen = DOM.infoCtrl.classList.contains('btn--active');
+		closeMenu();
+		ensureInfoContent();
+		DOM.infoCtrl.classList.toggle('btn--active', !isOpen);
+		DOM.infoOverlay.classList.toggle('overlay--active', !isOpen);
+	}
+
+	function onTouchStart(ev) {
+		if (DOM.menuCtrl.classList.contains('btn--active') || DOM.infoCtrl.classList.contains('btn--active')) {
+			return;
+		}
+
+		touchStart = getEventPoint(ev);
+	}
+
+	function onTouchEnd(ev) {
+		if (!touchStart) {
+			return;
+		}
+
+		var touchEnd = getEventPoint(ev);
+		var diffX = touchEnd.x - touchStart.x;
+		var diffY = touchEnd.y - touchStart.y;
+		var minSwipe = Math.min(100, Math.max(44, window.innerWidth * 0.15));
+		touchStart = null;
+
+		if (Math.abs(diffX) > minSwipe && Math.abs(diffX) > Math.abs(diffY) * 1.4) {
+			navigate(diffX < 0 ? 'next' : 'prev');
+		}
+	}
+
+	function initEvents() {
+		DOM.nav.leftCtrl.addEventListener('click', function() {
+			navigate('prev');
+		});
+		DOM.nav.rightCtrl.addEventListener('click', function() {
+			navigate('next');
+		});
+		DOM.menuCtrl.addEventListener('click', toggleMenu);
+		DOM.infoCtrl.addEventListener('click', toggleInfo);
+		document.addEventListener('touchstart', onTouchStart, {passive: true});
+		document.addEventListener('touchend', onTouchEnd, {passive: true});
+		document.addEventListener('firebase-ready', initAuth);
+		window.addEventListener('resize', setAppHeight);
+		window.addEventListener('orientationchange', setAppHeight);
+		window.addEventListener('keydown', function(ev) {
+			if (ev.key === 'ArrowRight') {
+				navigate('next');
+			}
+			if (ev.key === 'ArrowLeft') {
+				navigate('prev');
+			}
+			if (ev.key === 'Escape') {
+				closeMenu();
+				closeInfo();
 			}
 		});
+	}
+
+	function init() {
+		setAppHeight();
+		document.title = profile.displayName + ' / VELDER ARCHIVE';
+		DOM.brand.textContent = profile.displayName;
+		DOM.subject.textContent = 'PRIVATE WEB PHOTOBOOK';
+		DOM.location.textContent = profile.shareUrl.replace(/^https?:\/\//, '');
+		DOM.rooms.forEach(function(room, index) {
+			room.classList.toggle('room--current', index === currentRoom);
+			room.style.opacity = index === currentRoom ? 1 : 0;
+			room.setAttribute('aria-label', chapters[index].title);
+		});
+		DOM.slides.forEach(function(slide, index) {
+			var title = slide.querySelector('.slide__title span');
+			var number = slide.querySelector('.slide__number');
+			var date = slide.querySelector('.slide__date');
+
+			if (title) {
+				title.textContent = chapters[index].title;
+			}
+			if (number) {
+				number.innerHTML = chapters[index].label + ' <strong>' + profile.displayName + '</strong>';
+			}
+			if (date) {
+				date.textContent = chapters[index].note;
+			}
+			slide.classList.toggle('slide--current', index === currentRoom);
+		});
+		initEvents();
+		initAuth();
+	}
+
+	imagesLoaded(DOM.scroller, function() {
+		init();
+		if (window.anime) {
+			anime({
+				targets: DOM.loader,
+				duration: 450,
+				easing: 'easeInOutCubic',
+				delay: 350,
+				opacity: [1, 0],
+				complete: function() {
+					DOM.loader.classList.remove('overlay--active');
+				}
+			});
+		}
+		else {
+			DOM.loader.classList.remove('overlay--active');
+		}
 	});
 
 })(window);

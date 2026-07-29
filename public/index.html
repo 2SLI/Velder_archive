@@ -13,23 +13,18 @@
 		<link rel="stylesheet" type="text/css" href="css/normalize.css" />
 		<link rel="stylesheet" type="text/css" href="css/demo.css" />
 		 <!-- update the version number as needed -->
-		 <script defer src="/__/firebase/10.7.1/firebase-app-compat.js"></script>
+		 <script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 		 <!-- include only the Firebase features as you need -->
-		 <script defer src="/__/firebase/10.7.1/firebase-auth-compat.js"></script>
-		 <script defer src="/__/firebase/10.7.1/firebase-database-compat.js"></script>
-		 <script defer src="/__/firebase/10.7.1/firebase-firestore-compat.js"></script>
-		 <script defer src="/__/firebase/10.7.1/firebase-functions-compat.js"></script>
-		 <script defer src="/__/firebase/10.7.1/firebase-messaging-compat.js"></script>
-		 <script defer src="/__/firebase/10.7.1/firebase-storage-compat.js"></script>
-		 <script defer src="/__/firebase/10.7.1/firebase-analytics-compat.js"></script>
-		 <script defer src="/__/firebase/10.7.1/firebase-remote-config-compat.js"></script>
-		 <script defer src="/__/firebase/10.7.1/firebase-performance-compat.js"></script>
-		 <!-- 
-		   initialize the SDK after all desired features are loaded, set useEmulator to false
-		   to avoid connecting the SDK to running emulators.
-		 -->
-		 <script defer src="/__/firebase/init.js?useEmulator=true"></script>
-		<script>document.documentElement.className = 'js';</script>
+		 <script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+		 <script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+		 <script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+		 <script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+		 <script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+		 <script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+		 <script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics-compat.js"></script>
+		 <script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-remote-config-compat.js"></script>
+		 <script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-performance-compat.js"></script>
+			<script>document.documentElement.className = 'js';</script>
 	</head>
 	<body>
 		<svg class="hidden">
@@ -154,6 +149,15 @@
 				<h1 class="codrops-header__title">VELDER KOREA</h1>
 			    </a>
 				<div class="subject" style="text-align: center;">VELDER ARCHIVE EXHIBITION</div>
+				<div class="auth-panel" aria-live="polite">
+					<button class="auth-panel__button" type="button" data-auth-action="login">Google 로그인</button>
+					<div class="auth-panel__user" hidden>
+						<img class="auth-panel__photo" alt="" referrerpolicy="no-referrer">
+						<span class="auth-panel__name"></span>
+						<button class="auth-panel__button auth-panel__button--secondary" type="button" data-auth-action="logout">로그아웃</button>
+					</div>
+					<p class="auth-panel__message" role="status"></p>
+				</div>
 				<button class="btn btn--info btn--toggle">
 					<svg class="icon icon--info"><use xlink:href="#icon-info"></use></svg>
 					<svg class="icon icon--cross"><use xlink:href="#icon-cross"></use></svg>	
@@ -162,18 +166,14 @@
 					<svg class="icon icon--menu"><use xlink:href="#icon-menu"></use></svg>
 					<svg class="icon icon--cross"><use xlink:href="#icon-cross"></use></svg>
 				</button>
-				<div class="overlay overlay--menu">
-					<ul class="menu">
-						<li class="menu__item menu__item--current"><a class="menu__link" href="https://velder.kr/">
-							<h1>VELDER.kr</h1>
-
-						</a></li>
-						
-						<li class="menu__item"><a class="menu__link" href="https://velder.kr/category/VELDER-CLASSIC/125/">VELDER CLASSIC</a></li>
-						<li class="menu__item"><a class="menu__link" href="https://velder.kr/category/VELDER-STUDIO/126/">VELDER STUDIO</a></li>
-						<li class="menu__item"><a class="menu__link" href="https://velder.kr/category/VELDER-ARCHIVE/127/">VELDER ARCHIVE</a></li>
-					</ul>
-				</div>
+					<div class="overlay overlay--menu">
+						<ul class="menu">
+							<li class="menu__item menu__item--current"><a class="menu__link" href="/velder">VELDER</a></li>
+							<li class="menu__item"><a class="menu__link" href="/daehee">DAEHEE</a></li>
+							<li class="menu__item"><a class="menu__link" href="/archive">ARCHIVE</a></li>
+							<li class="menu__item"><a class="menu__link" href="/guest">GUEST BOOK</a></li>
+						</ul>
+					</div>
 				<div class="overlay overlay--info">
 				</div>
 			</header>
@@ -248,61 +248,63 @@
 		
 		<script src="js/anime.min.js"></script>
 		<script src="js/imagesloaded.pkgd.min.js"></script>
+		<script>
+			const firebaseConfig = {
+			  apiKey: "AIzaSyBrkuAzMd4JCfn5FfS0NCsMe9TlNrZhhjo",
+			  authDomain: "velder-archive-490e0.firebaseapp.com",
+			  projectId: "velder-archive-490e0",
+			  storageBucket: "velder-archive-490e0.firebasestorage.app",
+			  messagingSenderId: "87438133136",
+			  appId: "1:87438133136:web:ebb765d406a92c6c3b1515"
+			};
+
+			document.addEventListener('DOMContentLoaded', function() {
+			  const loadEl = document.querySelector('#load');
+			  // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+			  // // The Firebase SDK is initialized and available here!
+			  //
+			  // firebase.auth().onAuthStateChanged(user => { });
+			  // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
+			  // firebase.firestore().doc('/foo/bar').get().then(() => { });
+			  // firebase.functions().httpsCallable('yourFunction')().then(() => { });
+			  // firebase.messaging().requestPermission().then(() => { });
+			  // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
+			  // firebase.analytics(); // call to activate
+			  // firebase.analytics().logEvent('tutorial_completed');
+			  // firebase.performance(); // call to activate
+			  //
+			  // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+
+			  try {
+				if (!firebase.apps.length) {
+				  firebase.initializeApp(firebaseConfig);
+				}
+
+				let app = firebase.app();
+				let features = [
+				  'auth',
+				  'database',
+				  'firestore',
+				  'functions',
+				  'messaging',
+				  'storage',
+				  'analytics',
+				  'remoteConfig',
+				  'performance',
+				].filter(feature => typeof app[feature] === 'function');
+				if (loadEl) {
+				  loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
+				}
+			  } catch (e) {
+				console.error(e);
+				if (loadEl) {
+				  loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
+				}
+			  } finally {
+				document.dispatchEvent(new Event('firebase-ready'));
+			  }
+			});
+		  </script>
 		<script src="js/main.js"></script>
 	</body>
-	<script>
-		document.addEventListener('DOMContentLoaded', function() {
-		  const loadEl = document.querySelector('#load');
-		  // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-		  // // The Firebase SDK is initialized and available here!
-		  //
-		  // firebase.auth().onAuthStateChanged(user => { });
-		  // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
-		  // firebase.firestore().doc('/foo/bar').get().then(() => { });
-		  // firebase.functions().httpsCallable('yourFunction')().then(() => { });
-		  // firebase.messaging().requestPermission().then(() => { });
-		  // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
-		  // firebase.analytics(); // call to activate
-		  // firebase.analytics().logEvent('tutorial_completed');
-		  // firebase.performance(); // call to activate
-		  //
-		  // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-  
-		  try {
-			let app = firebase.app();
-			let features = [
-			  'auth', 
-			  'database', 
-			  'firestore',
-			  'functions',
-			  'messaging', 
-			  'storage', 
-			  'analytics', 
-			  'remoteConfig',
-			  'performance',
-			].filter(feature => typeof app[feature] === 'function');
-			loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
-		  } catch (e) {
-			console.error(e);
-			loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
-		  }
-		});
-		// Import the functions you need from the SDKs you need
-  import { initializeApp } from "firebase/app";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-  
-  // Your web app's Firebase configuration
-  const firebaseConfig = {
-	apiKey: "AIzaSyCmVI5Rp2Ws6JmGT7CV77t1xvsWGCQRQs8",
-	authDomain: "velderarchive.firebaseapp.com",
-	projectId: "velderarchive",
-	storageBucket: "velderarchive.appspot.com",
-	messagingSenderId: "91370146925",
-	appId: "1:91370146925:web:5ccf8e1b20451d2a770364"
-  };
-  
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-	  </script>
 </html>

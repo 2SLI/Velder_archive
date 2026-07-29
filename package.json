@@ -1,0 +1,12 @@
+{
+  "name": "velder-archive",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "firebase emulators:start --only hosting --project velder-archive-490e0",
+    "dev": "firebase emulators:start --only hosting --project velder-archive-490e0"
+  },
+  "devDependencies": {
+    "firebase-tools": "^15.24.0"
+  }
+}
