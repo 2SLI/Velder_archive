@@ -18,6 +18,7 @@
 	};
 	DOM.menuCtrl = DOM.content.querySelector('.btn--menu');
 	DOM.menuOverlay = DOM.content.querySelector('.overlay--menu');
+	DOM.menuPanel = DOM.content.querySelector('.menu-panel');
 	DOM.infoCtrl = DOM.content.querySelector('.btn--info');
 	DOM.infoOverlay = DOM.content.querySelector('.overlay--info');
 	DOM.brand = DOM.content.querySelector('.codrops-header__title');
@@ -291,7 +292,11 @@
 		setAuthMessage(isSignedIn ? '로그인됨' : '');
 	}
 
-	function signInWithGoogle() {
+	function signInWithGoogle(ev) {
+		if (ev) {
+			ev.preventDefault();
+			ev.stopPropagation();
+		}
 		if (!window.firebase || !firebase.auth) {
 			setAuthMessage('Firebase Auth를 불러오지 못했습니다.');
 			return;
@@ -319,7 +324,11 @@
 			});
 	}
 
-	function signOutFromGoogle() {
+	function signOutFromGoogle(ev) {
+		if (ev) {
+			ev.preventDefault();
+			ev.stopPropagation();
+		}
 		if (!window.firebase || !firebase.auth) {
 			return;
 		}
@@ -421,10 +430,24 @@
 		});
 		DOM.menuCtrl.addEventListener('click', toggleMenu);
 		DOM.infoCtrl.addEventListener('click', toggleInfo);
+		if (DOM.menuPanel) {
+			DOM.menuPanel.addEventListener('click', function(ev) {
+				ev.stopPropagation();
+			});
+		}
+		if (DOM.menuOverlay) {
+			DOM.menuOverlay.addEventListener('click', function(ev) {
+				if (ev.target === DOM.menuOverlay) {
+					closeMenu();
+				}
+			});
+		}
 		DOM.photoImages.forEach(function(image, index) {
 			image.setAttribute('tabindex', '0');
 			image.setAttribute('role', 'button');
-			image.addEventListener('click', function() {
+			image.addEventListener('click', function(ev) {
+				ev.preventDefault();
+				ev.stopPropagation();
 				openViewer(index);
 			});
 			image.addEventListener('keydown', function(ev) {
