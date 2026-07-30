@@ -159,9 +159,7 @@
 					<div class="menu-panel">
 						<ul class="menu">
 							<li class="menu__item menu__item--current"><a class="menu__link" href="/velder">VELDER</a></li>
-							<li class="menu__item"><a class="menu__link" href="/daehee">DAEHEE</a></li>
 							<li class="menu__item"><a class="menu__link" href="/archive">ARCHIVE</a></li>
-							<li class="menu__item"><a class="menu__link" href="/guest">GUEST BOOK</a></li>
 						</ul>
 						<div class="auth-panel" aria-live="polite">
 							<button class="auth-panel__button" type="button" data-auth-action="login">Google 로그인</button>
@@ -244,6 +242,15 @@
 				<div></div>
 				<div></div>
 			</div>
+		</div>
+		<div class="overlay overlay--viewer" aria-hidden="true">
+			<button class="btn viewer__close" type="button" aria-label="Close image viewer">&times;</button>
+			<button class="btn viewer__nav viewer__nav--prev" type="button" aria-label="Previous image">&#8249;</button>
+			<figure class="viewer__figure">
+				<img class="viewer__img" alt="">
+				<figcaption class="viewer__count"></figcaption>
+			</figure>
+			<button class="btn viewer__nav viewer__nav--next" type="button" aria-label="Next image">&#8250;</button>
 		</div>
 		
 		<script src="js/anime.min.js"></script>

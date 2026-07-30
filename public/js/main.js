@@ -11,6 +11,7 @@
 
 	DOM.rooms = [].slice.call(DOM.scroller.querySelectorAll('.room'));
 	DOM.slides = [].slice.call(DOM.content.querySelectorAll('.slides > .slide'));
+	DOM.photoImages = [].slice.call(DOM.scroller.querySelectorAll('.room__img'));
 	DOM.nav = {
 		leftCtrl: DOM.content.querySelector('.btn--nav-left'),
 		rightCtrl: DOM.content.querySelector('.btn--nav-right')
@@ -31,11 +32,21 @@
 		name: DOM.content.querySelector('.auth-panel__name'),
 		message: DOM.content.querySelector('.auth-panel__message')
 	};
+	DOM.viewer = {
+		overlay: document.querySelector('.overlay--viewer'),
+		image: document.querySelector('.viewer__img'),
+		count: document.querySelector('.viewer__count'),
+		closeCtrl: document.querySelector('.viewer__close'),
+		prevCtrl: document.querySelector('.viewer__nav--prev'),
+		nextCtrl: document.querySelector('.viewer__nav--next')
+	};
 
 	var currentRoom = 0;
 	var totalRooms = DOM.rooms.length;
 	var isAnimating = false;
 	var touchStart = null;
+	var viewerTouchStart = null;
+	var currentViewerImage = 0;
 	var profile = getProfile();
 	var authInitialized = false;
 	var chapters = [
@@ -139,6 +150,55 @@
 			: (currentRoom - 1 + totalRooms) % totalRooms;
 
 		setCurrentRoom(nextIndex, direction);
+	}
+
+	function isViewerOpen() {
+		return DOM.viewer.overlay && DOM.viewer.overlay.classList.contains('overlay--active');
+	}
+
+	function showViewerImage(index) {
+		if (!DOM.viewer.image || !DOM.photoImages.length) {
+			return;
+		}
+
+		currentViewerImage = (index + DOM.photoImages.length) % DOM.photoImages.length;
+		var source = DOM.photoImages[currentViewerImage];
+		DOM.viewer.image.src = source.currentSrc || source.src;
+		DOM.viewer.image.alt = source.alt || 'Archive image';
+		if (DOM.viewer.count) {
+			DOM.viewer.count.textContent = (currentViewerImage + 1) + ' / ' + DOM.photoImages.length;
+		}
+	}
+
+	function openViewer(index) {
+		if (!DOM.viewer.overlay) {
+			return;
+		}
+
+		closeMenu();
+		closeInfo();
+		showViewerImage(index);
+		DOM.viewer.overlay.classList.add('overlay--active');
+		DOM.viewer.overlay.setAttribute('aria-hidden', 'false');
+		if (DOM.viewer.closeCtrl) {
+			DOM.viewer.closeCtrl.focus();
+		}
+	}
+
+	function closeViewer() {
+		if (!DOM.viewer.overlay) {
+			return;
+		}
+
+		DOM.viewer.overlay.classList.remove('overlay--active');
+		DOM.viewer.overlay.setAttribute('aria-hidden', 'true');
+		if (DOM.viewer.image) {
+			DOM.viewer.image.removeAttribute('src');
+		}
+	}
+
+	function navigateViewer(direction) {
+		showViewerImage(currentViewerImage + (direction === 'next' ? 1 : -1));
 	}
 
 	function closeMenu() {
@@ -307,6 +367,9 @@
 	}
 
 	function onTouchStart(ev) {
+		if (isViewerOpen()) {
+			return;
+		}
 		if (DOM.menuCtrl.classList.contains('btn--active') || DOM.infoCtrl.classList.contains('btn--active')) {
 			return;
 		}
@@ -330,6 +393,25 @@
 		}
 	}
 
+	function onViewerTouchStart(ev) {
+		viewerTouchStart = getEventPoint(ev);
+	}
+
+	function onViewerTouchEnd(ev) {
+		if (!viewerTouchStart) {
+			return;
+		}
+
+		var touchEnd = getEventPoint(ev);
+		var diffX = touchEnd.x - viewerTouchStart.x;
+		var diffY = touchEnd.y - viewerTouchStart.y;
+		viewerTouchStart = null;
+
+		if (Math.abs(diffX) > 44 && Math.abs(diffX) > Math.abs(diffY) * 1.25) {
+			navigateViewer(diffX < 0 ? 'next' : 'prev');
+		}
+	}
+
 	function initEvents() {
 		DOM.nav.leftCtrl.addEventListener('click', function() {
 			navigate('prev');
@@ -339,12 +421,59 @@
 		});
 		DOM.menuCtrl.addEventListener('click', toggleMenu);
 		DOM.infoCtrl.addEventListener('click', toggleInfo);
+		DOM.photoImages.forEach(function(image, index) {
+			image.setAttribute('tabindex', '0');
+			image.setAttribute('role', 'button');
+			image.addEventListener('click', function() {
+				openViewer(index);
+			});
+			image.addEventListener('keydown', function(ev) {
+				if (ev.key === 'Enter' || ev.key === ' ') {
+					ev.preventDefault();
+					openViewer(index);
+				}
+			});
+		});
+		if (DOM.viewer.closeCtrl) {
+			DOM.viewer.closeCtrl.addEventListener('click', closeViewer);
+		}
+		if (DOM.viewer.prevCtrl) {
+			DOM.viewer.prevCtrl.addEventListener('click', function() {
+				navigateViewer('prev');
+			});
+		}
+		if (DOM.viewer.nextCtrl) {
+			DOM.viewer.nextCtrl.addEventListener('click', function() {
+				navigateViewer('next');
+			});
+		}
+		if (DOM.viewer.overlay) {
+			DOM.viewer.overlay.addEventListener('click', function(ev) {
+				if (ev.target === DOM.viewer.overlay) {
+					closeViewer();
+				}
+			});
+			DOM.viewer.overlay.addEventListener('touchstart', onViewerTouchStart, {passive: true});
+			DOM.viewer.overlay.addEventListener('touchend', onViewerTouchEnd, {passive: true});
+		}
 		document.addEventListener('touchstart', onTouchStart, {passive: true});
 		document.addEventListener('touchend', onTouchEnd, {passive: true});
 		document.addEventListener('firebase-ready', initAuth);
 		window.addEventListener('resize', setAppHeight);
 		window.addEventListener('orientationchange', setAppHeight);
 		window.addEventListener('keydown', function(ev) {
+			if (isViewerOpen()) {
+				if (ev.key === 'ArrowRight') {
+					navigateViewer('next');
+				}
+				if (ev.key === 'ArrowLeft') {
+					navigateViewer('prev');
+				}
+				if (ev.key === 'Escape') {
+					closeViewer();
+				}
+				return;
+			}
 			if (ev.key === 'ArrowRight') {
 				navigate('next');
 			}

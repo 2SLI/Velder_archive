@@ -92,6 +92,10 @@ button {
 	color: var(--red);
 }
 
+[hidden] {
+	display: none !important;
+}
+
 .btn--toggle {
 	min-width: 44px;
 	min-height: 44px;
@@ -204,6 +208,7 @@ button {
 	object-fit: cover;
 	filter: saturate(0.92) contrast(1.06);
 	background: #222;
+	cursor: zoom-in;
 }
 
 .room__side--back .room__img:first-child:nth-last-child(2),
@@ -479,6 +484,12 @@ button {
 	backdrop-filter: blur(12px);
 }
 
+.overlay--viewer {
+	z-index: 200;
+	background: rgba(3,3,3,0.94);
+	backdrop-filter: blur(12px);
+}
+
 .js .overlay--active {
 	pointer-events: auto;
 	opacity: 1;
@@ -518,6 +529,83 @@ button {
 .menu__link:focus,
 .menu__link:hover {
 	color: var(--red);
+}
+
+.viewer__figure {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: min(1180px, calc(100vw - 132px));
+	height: min(82vh, calc(var(--app-height) - 96px));
+	margin: 0;
+}
+
+.viewer__img {
+	display: block;
+	max-width: 100%;
+	max-height: 100%;
+	object-fit: contain;
+	box-shadow: 0 28px 90px rgba(0,0,0,0.7);
+}
+
+.viewer__count {
+	position: absolute;
+	left: 50%;
+	bottom: -2.2rem;
+	transform: translateX(-50%);
+	color: rgba(244,239,231,0.7);
+	font-size: 0.72rem;
+	white-space: nowrap;
+}
+
+.viewer__close,
+.viewer__nav {
+	position: fixed;
+	z-index: 2;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid rgba(244,239,231,0.26);
+	color: var(--paper);
+	background: rgba(12,12,12,0.58);
+	pointer-events: auto;
+	touch-action: manipulation;
+}
+
+.viewer__close {
+	top: max(18px, env(safe-area-inset-top));
+	right: max(18px, env(safe-area-inset-right));
+	width: 48px;
+	height: 48px;
+	font-size: 2rem;
+	line-height: 1;
+}
+
+.viewer__nav {
+	top: 50%;
+	width: 56px;
+	height: 72px;
+	font-size: 3.5rem;
+	line-height: 1;
+	transform: translateY(-50%);
+}
+
+.viewer__nav--prev {
+	left: max(18px, env(safe-area-inset-left));
+}
+
+.viewer__nav--next {
+	right: max(18px, env(safe-area-inset-right));
+}
+
+.viewer__close:hover,
+.viewer__nav:hover,
+.viewer__close:focus-visible,
+.viewer__nav:focus-visible {
+	border-color: rgba(244,239,231,0.72);
+	color: var(--paper);
+	background: rgba(194,41,46,0.28);
 }
 
 .info {
@@ -693,5 +781,24 @@ button {
 
 	.menu__item {
 		font-size: clamp(1.4rem, 8vw, 2.25rem);
+	}
+
+	.viewer__figure {
+		width: calc(100vw - 28px);
+		height: min(74vh, calc(var(--app-height) - 136px));
+	}
+
+	.viewer__close {
+		width: 44px;
+		height: 44px;
+	}
+
+	.viewer__nav {
+		top: auto;
+		bottom: max(18px, env(safe-area-inset-bottom));
+		width: 50px;
+		height: 50px;
+		font-size: 2.8rem;
+		transform: none;
 	}
 }
