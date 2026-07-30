@@ -247,19 +247,24 @@ button {
 .auth-panel {
 	position: relative;
 	display: flex;
+	flex-direction: column;
 	align-items: center;
-	justify-content: flex-end;
-	min-width: 148px;
+	justify-content: center;
+	gap: 0.85rem;
+	width: min(22rem, 78vw);
+	min-width: 0;
 	pointer-events: auto;
+	text-transform: none;
 }
 
 .auth-panel__button {
-	min-height: 36px;
-	padding: 0.64em 0.9em 0.48em;
+	width: 100%;
+	min-height: 46px;
+	padding: 0.78em 1.1em 0.62em;
 	border: 1px solid rgba(244,239,231,0.58);
 	color: var(--paper);
-	background: rgba(9,9,9,0.42);
-	font-size: 0.7rem;
+	background: rgba(244,239,231,0.06);
+	font-size: 0.82rem;
 	line-height: 1;
 	text-transform: uppercase;
 	cursor: pointer;
@@ -269,8 +274,8 @@ button {
 .auth-panel__button:hover,
 .auth-panel__button:focus-visible {
 	border-color: var(--red);
-	color: var(--red);
-	background: rgba(9,9,9,0.72);
+	color: var(--paper);
+	background: rgba(194,41,46,0.28);
 }
 
 .auth-panel__button:disabled {
@@ -279,15 +284,18 @@ button {
 }
 
 .auth-panel__button--secondary {
-	min-height: 30px;
-	padding: 0.48em 0.7em 0.36em;
-	font-size: 0.62rem;
+	min-height: 38px;
+	padding: 0.62em 0.9em 0.48em;
+	font-size: 0.7rem;
 }
 
 .auth-panel__user {
 	display: flex;
 	align-items: center;
+	justify-content: center;
+	flex-wrap: wrap;
 	gap: 0.55em;
+	width: 100%;
 	min-width: 0;
 }
 
@@ -301,25 +309,21 @@ button {
 }
 
 .auth-panel__name {
-	max-width: 9.5rem;
+	max-width: 100%;
 	overflow: hidden;
 	color: var(--paper);
-	font-size: 0.75rem;
+	font-size: 0.86rem;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
 .auth-panel__message {
-	position: absolute;
-	top: calc(100% + 0.45rem);
-	right: 0;
-	width: max-content;
-	max-width: min(17rem, 74vw);
+	width: 100%;
 	margin: 0;
 	color: rgba(244,239,231,0.74);
-	font-size: 0.68rem;
+	font-size: 0.72rem;
 	line-height: 1.35;
-	text-align: right;
+	text-align: center;
 	text-transform: none;
 }
 
@@ -487,6 +491,15 @@ button {
 	text-transform: uppercase;
 }
 
+.menu-panel {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: clamp(1.4rem, 5vh, 3.2rem);
+	width: min(34rem, calc(100vw - 40px));
+}
+
 .menu__item {
 	font-size: clamp(1.6rem, 5vh, 4rem);
 	margin: 0.32em 0;
@@ -637,21 +650,8 @@ button {
 		margin-right: 0;
 	}
 
-	.auth-panel {
-		order: 4;
-		width: 100%;
-		min-width: 0;
-		justify-content: flex-start;
-	}
-
 	.auth-panel__name {
-		max-width: calc(100vw - 185px);
-	}
-
-	.auth-panel__message {
-		left: 0;
-		right: auto;
-		text-align: left;
+		max-width: calc(100vw - 92px);
 	}
 
 	.slide {
